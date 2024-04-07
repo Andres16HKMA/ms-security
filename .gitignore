@@ -1,0 +1,8 @@
+target/
+src/ucaldas/Model
+src/ucaldas/Repositories
+src/ucaldas/services
+src/ucaldas/resources
+pom.xml
+mvnw.cmd
+mvnw
