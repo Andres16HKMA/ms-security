@@ -61,7 +61,7 @@ public class JwtService {
             return false;
         }
     }
-    /*public User getUserFromToken(String token) {
+   public User getUserFromToken(String token) {
         try {
             Jws<Claims> claimsJws = Jwts.parserBuilder()
                     .setSigningKey(secretKey)
@@ -79,5 +79,5 @@ public class JwtService {
             // En caso de que el token sea inválido o haya expirado
             return null;
         }
-    }*/
+    }
 }

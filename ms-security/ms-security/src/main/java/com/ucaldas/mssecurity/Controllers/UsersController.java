@@ -1,5 +1,4 @@
 package com.ucaldas.mssecurity.Controllers;
-
 import com.ucaldas.mssecurity.Models.Role;
 import com.ucaldas.mssecurity.Models.User;
 import com.ucaldas.mssecurity.Repositories.RoleRepository;
@@ -8,7 +7,7 @@ import com.ucaldas.mssecurity.services.EncryptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import java.util.UUID;
+
 
 import java.util.List;
 
@@ -53,10 +52,6 @@ public class UsersController {
         } else {
             return null;
         }
-    }
-    public String generarContrasenaAleatoria() {
-        // Generar una contraseña aleatoria usando UUID
-        return UUID.randomUUID().toString().substring(0, 8); // Puedes ajustar la longitud de la contraseña
     }
 
 
@@ -106,20 +101,6 @@ public class UsersController {
             return null;
         }
     }
-    @PutMapping("{id}/reset-password")
-public User RecoveryPassword(@PathVariable String id){
-    User theActualUser = this.theUserRepository.findById(id).orElse(null);
-    if (theActualUser != null) {
-        // Generar una nueva contraseña aleatoria
-        String nuevaContrasena = generarContrasenaAleatoria();
-        // Actualizar la contraseña del usuario en la base de datos
-        theActualUser.setPassword(theEncryptionService.convertSHA256(nuevaContrasena));
-        this.theUserRepository.save(theActualUser);
-        return theActualUser;
-    
-    }else{
-        return null;
-    }
-}
+
 
 }
