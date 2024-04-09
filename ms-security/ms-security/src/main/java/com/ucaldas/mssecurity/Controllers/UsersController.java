@@ -28,8 +28,12 @@ public class UsersController {
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
     public User create(@RequestBody User theNewUser){
-        theNewUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
-        return this.theUserRepository.save(theNewUser);
+        User thUser = theUserRepository.getUserByEmail((theNewUser.getEmail()));
+        if (thUser == null){
+            theNewUser.setPassword(theEncryptionService.convertSHA256(theNewUser.getPassword()));
+            return this.theUserRepository.save(theNewUser);
+        }
+        return null;
     }
     @GetMapping("{id}")
     public User findById(@PathVariable String id) {
