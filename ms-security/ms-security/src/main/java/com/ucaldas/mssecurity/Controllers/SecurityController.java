@@ -35,17 +35,21 @@ public class SecurityController {
         }
         return token;
     }
-    @PutMapping("{id}/reset-password")
-    public User RecoveryPassword(@PathVariable String id) {
-        User theActualUser = this.theUserRepository.findById(id).orElse(null);
+    @PutMapping("/reset-password")
+    public User resetpassword(@RequestBody User theUser, final HttpServletResponse response) throws IOException {
+        User theActualUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
         if (theActualUser != null) {
             // Genera una nueva contraseña aleatoria
             String nuevaContrasena = generarContrasenaAleatoria();
             // Actualiza la contraseña del usuario en la base de datos
-            theActualUser.setPassword(theEncryptionService.convertSHA256(nuevaContrasena));
-            this.theUserRepository.save(theActualUser);
-            SendEmail(theActualUser.getEmail(), nuevaContrasena);
-            return theActualUser;
+            if (theActualUser.getEmail()!=null){
+                theActualUser.setPassword(theEncryptionService.convertSHA256(nuevaContrasena));
+                this.theUserRepository.save(theActualUser);
+                SendEmail(theActualUser.getEmail(), nuevaContrasena);
+                return theActualUser;
+            }else{
+                return null;
+            }
         } else {
             return null;
         }
