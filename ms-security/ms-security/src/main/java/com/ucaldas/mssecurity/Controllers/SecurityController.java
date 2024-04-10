@@ -1,8 +1,4 @@
 package com.ucaldas.mssecurity.Controllers;
-import com.azure.communication.email.*;
-import com.azure.communication.email.models.*;
-import com.azure.core.util.polling.PollResponse;
-import com.azure.core.util.polling.SyncPoller;
 import com.ucaldas.mssecurity.Models.User;
 import com.ucaldas.mssecurity.Repositories.UserRepository;
 import com.ucaldas.mssecurity.services.EncryptionService;
@@ -10,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import com.ucaldas.mssecurity.services.JwtService;
+import com.ucaldas.mssecurity.services.NotificationsService;
 import java.util.UUID;
 import java.io.IOException;
 
@@ -23,7 +20,8 @@ public class SecurityController {
     private EncryptionService theEncryptionService;
     @Autowired
     private JwtService theJwtService;
-
+    @Autowired
+    private NotificationsService theNotificationsService;
     @PostMapping("/login")
     public String login(@RequestBody User theNewUser, final HttpServletResponse response) throws IOException {
         String token = "";
@@ -36,8 +34,7 @@ public class SecurityController {
                 token = theJwtService.generateToken(theActualUser);
                 theActualUser.setToken(token);
                 this.theUserRepository.save(theActualUser);
-                SendEmail(theActualUser.getEmail(), token);
-                // Retornar un mensaje indicando que se envió un token para iniciar sesión
+                theNotificationsService.sendCodeByEmail(theActualUser, token);
                 return "Se ha enviado un token por correo electrónico. Por favor, ingrese el token para iniciar sesión.";
             } else {
                 // Si ya tiene un token, retornar un mensaje indicando que se requiere el token para iniciar sesión
@@ -48,7 +45,7 @@ public class SecurityController {
             return "Credenciales inválidas.";
         }
     }
-    @PutMapping("/reset-password")
+    @PostMapping("/reset-password")
     public User resetpassword(@RequestBody User theUser, final HttpServletResponse response) throws IOException {
         User theActualUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
         if (theActualUser != null) {
@@ -58,7 +55,7 @@ public class SecurityController {
             if (theActualUser.getEmail()!=null){
                 theActualUser.setPassword(theEncryptionService.convertSHA256(nuevaContrasena));
                 this.theUserRepository.save(theActualUser);
-                SendEmail(theActualUser.getEmail(), nuevaContrasena);
+                theNotificationsService.sendPasswordResetEmail(theActualUser, nuevaContrasena);
                 return theActualUser;
             }else{
                 return null;
@@ -67,24 +64,28 @@ public class SecurityController {
             return null;
         }
     }
+    @PostMapping("/second-factor-authentication")
+    public String secondFactorAutentification(@RequestBody User theNewUser, final HttpServletResponse response) throws IOException {
+        // Verificar si el token ingresado es igual al token enviado al usuario
+        String enteredToken = theNewUser.getToken(); // Supongo que el token ingresado está en el campo 'token' del objeto User
+        
+        // Verificar si el token ingresado es igual al token del usuario almacenado en la base de datos o en algún lugar seguro
+        User theUser = theUserRepository.getUserByEmail(theNewUser.getEmail());
+        String userToken = theUser != null ? theUser.getToken() : null;
+        
+        if (userToken != null && enteredToken != null && userToken.equals(enteredToken)) {
+            // Si los tokens son iguales, permitir tanto el inicio de sesión como la recuperación de contraseña
+            return "Autenticación de segundo factor exitosa. Se permitirá tanto el inicio de sesión como la recuperación de contraseña.";
+        } else {
+            // Si los tokens no son iguales, negar el acceso
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Autenticación de segundo factor fallida. Token incorrecto.");
+            return "Autenticación de segundo factor fallida. Token incorrecto.";
+        }
+    }
+    
     public String generarContrasenaAleatoria() {
         // Generar una contraseña aleatoria usando UUID
         return UUID.randomUUID().toString().substring(0, 8); // Puedes ajustar la longitud de la contraseña
-    }
-    private void SendEmail(String email, String nuevaContrasena){
-                // Envía la nueva contraseña por correo electrónico
-                String connectionString = "endpoint=https://hkma-notificaciones.unitedstates.communication.azure.com/;accesskey=1Hvrk2Kl5lFn5O/5oYX/60Rz1zduUGVSnCG+7GQ4MeWl8XgJ5Es0sdn6fb67EkyH7rC1Poahjv9dtVj9xqB6DQ==";
-                EmailClient emailClient = new EmailClientBuilder().connectionString(connectionString).buildClient();
-        
-                EmailAddress toAddress = new EmailAddress(email);
-                
-                EmailMessage emailMessage = new EmailMessage()
-                    .setSenderAddress("DoNotReply@7ebed90e-32ff-41b7-968b-99da1740422d.azurecomm.net")
-                    .setToRecipients(toAddress)
-                    .setSubject(nuevaContrasena)
-                    .setBodyPlainText("Esta es la nueva contraseña."+ nuevaContrasena);
-        
-                SyncPoller<EmailSendResult, EmailSendResult> poller = emailClient.beginSend(emailMessage, null);
-                PollResponse<EmailSendResult> result = poller.waitForCompletion();
-    }
+
+}
 }
