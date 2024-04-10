@@ -25,15 +25,28 @@ public class SecurityController {
     private JwtService theJwtService;
 
     @PostMapping("/login")
-    public String login(@RequestBody User theNewUser, final HttpServletResponse response)throws IOException {
+    public String login(@RequestBody User theNewUser, final HttpServletResponse response) throws IOException {
         String token = "";
         User theActualUser = this.theUserRepository.getUserByEmail(theNewUser.getEmail());
+        
         if (theActualUser != null && theActualUser.getPassword().equals(theEncryptionService.convertSHA256(theNewUser.getPassword()))) {
-            token = theJwtService.generateToken(theActualUser);
-        }else{
+            // Verificar si el usuario tiene un token
+            if (theActualUser.getToken() == null || theActualUser.getToken().isEmpty()) {
+                // Si no tiene token, generar uno nuevo y guardarlo en la base de datos
+                token = theJwtService.generateToken(theActualUser);
+                theActualUser.setToken(token);
+                this.theUserRepository.save(theActualUser);
+                SendEmail(theActualUser.getEmail(), token);
+                // Retornar un mensaje indicando que se envió un token para iniciar sesión
+                return "Se ha enviado un token por correo electrónico. Por favor, ingrese el token para iniciar sesión.";
+            } else {
+                // Si ya tiene un token, retornar un mensaje indicando que se requiere el token para iniciar sesión
+                return "Se requiere un token para iniciar sesión. Por favor, ingrese el token.";
+            }
+        } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            return "Credenciales inválidas.";
         }
-        return token;
     }
     @PutMapping("/reset-password")
     public User resetpassword(@RequestBody User theUser, final HttpServletResponse response) throws IOException {
