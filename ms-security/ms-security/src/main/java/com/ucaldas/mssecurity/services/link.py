@@ -23,8 +23,41 @@ def send_email():
                 "to": [{"address": recipient_address}],
             },
             "content": {
-                "subject": "new password",
+                "subject": "body",
                 "html": fr'<h2>{data.get("newPassword")}</h2>',
+            }
+        }
+
+        poller = client.begin_send(message)
+        result = poller.result()
+        print(result)
+
+        return jsonify({'message': 'Email sent successfully'})
+
+    except Exception as ex:
+        print(ex)
+        return jsonify({'error': str(ex)}), 500
+    
+@app.route('/send_email_code', methods=['POST'])
+def send_email_code():
+    try:
+        data = request.json
+        recipient_address = data.get('email')
+        subject = data.get('subject')
+        plain_text = data.get('plain_text')
+
+        # Aquí debes ingresar tu cadena de conexión de Azure Communication Services
+        connection_string = "endpoint=https://hkma-notificaciones.unitedstates.communication.azure.com/;accesskey=1Hvrk2Kl5lFn5O/5oYX/60Rz1zduUGVSnCG+7GQ4MeWl8XgJ5Es0sdn6fb67EkyH7rC1Poahjv9dtVj9xqB6DQ=="
+        client = EmailClient.from_connection_string(connection_string)
+
+        message = {
+            "senderAddress": "DoNotReply@7ebed90e-32ff-41b7-968b-99da1740422d.azurecomm.net",
+            "recipients": {
+                "to": [{"address": recipient_address}],
+            },
+            "content": {
+                "subject": "body",
+                "html": fr'<h2>{data.get("code")}</h2>',
             }
         }
 

@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-/** This class represents a service for sending notifications. */
 @Service
 public class NotificationsService {
   @Value("${mfa.url.send.code}")

@@ -15,7 +15,7 @@ import java.util.UUID;
 
 @CrossOrigin
 @RestController
-@RequestMapping("/security")
+@RequestMapping("api/public/security")
 public class SecurityController {
     @Autowired
     private UserRepository theUserRepository;
@@ -24,7 +24,7 @@ public class SecurityController {
     @Autowired
     private JwtService theJwtService;
     @Autowired
-    private NotificationsService notificationsService; // Inyecta NotificationsService
+    private NotificationsService notificationsService; 
 
     @PostMapping("/login")
     public String login(@RequestBody User theNewUser, final HttpServletResponse response) throws IOException, java.io.IOException {
@@ -40,25 +40,23 @@ public class SecurityController {
     }
 
     @PostMapping("/reset-password")
-    public User recoveryPassword(@PathVariable String id) {
-        User theActualUser = this.theUserRepository.findById(id).orElse(null);
+    public String recoveryPassword(@RequestBody User theUser, final HttpServletResponse response) throws IOException, java.io.IOException {
+        User theActualUser = this.theUserRepository.getUserByEmail(theUser.getEmail());
         if (theActualUser != null) {
-            // Genera una nueva contraseña aleatoria
             String nuevaContrasena = generarContrasenaAleatoria();
             // Actualiza la contraseña del usuario en la base de datos
             theActualUser.setPassword(theEncryptionService.convertSHA256(nuevaContrasena));
             this.theUserRepository.save(theActualUser);
             // Envía el correo electrónico de restablecimiento de contraseña usando la instancia de NotificationsService
             notificationsService.sendPasswordResetEmail(theActualUser, nuevaContrasena);
-            return theActualUser;
+            return nuevaContrasena;
         } else {
             return null;
         }   
     }
 
     public String generarContrasenaAleatoria() {
-        // Generar una contraseña aleatoria usando UUID
-        return UUID.randomUUID().toString().substring(0, 8); // Puedes ajustar la longitud de la contraseña
+        return UUID.randomUUID().toString().substring(0, 8); 
     }
     
 }
