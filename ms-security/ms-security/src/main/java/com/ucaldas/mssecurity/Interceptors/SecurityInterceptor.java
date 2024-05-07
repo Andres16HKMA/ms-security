@@ -1,5 +1,6 @@
 package com.ucaldas.mssecurity.Interceptors;
 
+import com.ucaldas.mssecurity.services.JwtService;
 import com.ucaldas.mssecurity.services.ValidatorService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,15 +13,28 @@ import org.springframework.web.servlet.ModelAndView;
 public class SecurityInterceptor implements HandlerInterceptor {
     @Autowired
     private ValidatorService validatorService;
+    
+    @Autowired
+    private JwtService jwtService;
+
+    private static final String Bearer_Prefix = "Bearer";
+    
     @Override
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,
                              Object handler)
             throws Exception {
-        boolean success=this.validatorService.validationRolePermission(request,request.getRequestURI(),request.getMethod());
-        return success;
-    }
-
+        boolean success=true;
+                String authorizationHeader = request.getHeader("Authorization");
+                if (authorizationHeader != null && authorizationHeader.startsWith(Bearer_Prefix)){
+                    String token = authorizationHeader.substring(Bearer_Prefix.length());
+                    System.out.println("Bearer Token" + token);
+                    success = jwtService.validateToken(token);
+                }else{
+                    success=false;
+                }
+                return success;
+            }
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
                            ModelAndView modelAndView) throws Exception {

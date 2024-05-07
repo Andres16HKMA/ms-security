@@ -32,31 +32,40 @@ public class SecurityController {
         User theActualUser = this.theUserRepository.getUserByEmail(theNewUser.getEmail());
         if (theActualUser != null && theActualUser.getPassword().equals(theEncryptionService.convertSHA256(theNewUser.getPassword()))) {
             token = theJwtService.generateToken(theActualUser);
-            notificationsService.sendCodeByEmail(theActualUser, token);
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
         return token;
     }
     @PutMapping("/second-Factor")
-    public String SecondFactor(@RequestBody User thUser, final HttpServletResponse response) throws IOException, java.io.IOException{
-        String secondautentification = ""; 
+    public String secondFactor(
+        @RequestBody User thUser, 
+        final HttpServletResponse response
+    ) throws IOException, java.io.IOException {
         User theActualUser = this.theUserRepository.getUserByEmail(thUser.getEmail());
-        if (theActualUser !=null && theActualUser.getPassword().equals(theEncryptionService.convertSHA256(thUser.getPassword()))){
-            if (theActualUser.getToken()==thUser.getToken()){
+    
+        // Verifica si el usuario y la contraseña son válidos
+        if (theActualUser != null && 
+            theActualUser.getPassword().equals(theEncryptionService.convertSHA256(thUser.getPassword()))) {
+            
+            // Comprueba si el token del usuario coincide con el que envió
+            if (theActualUser.getToken() != null && 
+                theActualUser.getToken().equals(thUser.getToken())) {
+                // Si coinciden, retorna éxito
                 return "Ha ingresado de forma satisfactoria";
-            }else{
-                if (theActualUser.getToken() != null) {
-                    response.getWriter().write("Código ya enviado");            }
-                }
-                secondautentification = generadorCodigoSecondAF();
-                theActualUser.setToken(secondautentification);
-                notificationsService.sendCodeByEmail(theActualUser, secondautentification);
-                response.getWriter().write("se ha enviado un codigo a su correo");            
-        }else{
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            } else {
+                // Si el token no coincide o es nulo, genera un nuevo código
+                String secondAuthentication = generadorCodigoSecondAF(); // Genera el código
+                theActualUser.setToken(secondAuthentication); // Actualiza el token
+                this.theUserRepository.save(theActualUser); // Guarda el cambio
+                notificationsService.sendCodeByEmail(theActualUser, secondAuthentication); // Envía el código
+                return " este es el token " + theActualUser.getToken() + " y el del usuario ingresado es "+ thUser.getToken() + " comprabacion de funcion " + thUser.getEmail(); // Mensaje informativo
+            }
+        } else {
+            // Si la contraseña es incorrecta
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Contraseña incorrecta");
+            return null; // No se necesita retorno adicional
         }
-        return secondautentification;
     }
 
     @PostMapping("/reset-password")

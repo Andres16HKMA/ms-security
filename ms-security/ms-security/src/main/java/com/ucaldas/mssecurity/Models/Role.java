@@ -4,6 +4,7 @@ public class Role {
     private String _id;
     private String name;
     private String description;
+    private String IdCliente;
 
     public Role(String name, String description) {
         this.name = name;
@@ -30,4 +31,11 @@ public class Role {
     public void setDescription(String description) {
         this.description = description;
     }
+    public String getIdCliente(){
+        return IdCliente;
+    }
+    public void setIdCliente(){
+        this.IdCliente=IdCliente;
+    }
+    
 }
