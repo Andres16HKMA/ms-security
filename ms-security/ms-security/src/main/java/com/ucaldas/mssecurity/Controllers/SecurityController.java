@@ -27,44 +27,46 @@ public class SecurityController {
     private NotificationsService notificationsService; 
 
     @PostMapping("/login")
-    public String login(@RequestBody User theNewUser, final HttpServletResponse response) throws IOException, java.io.IOException {
+    public User login(@RequestBody User theNewUser, final HttpServletResponse response) throws IOException, java.io.IOException {
         String token = "";
+        String tok = "";
         User theActualUser = this.theUserRepository.getUserByEmail(theNewUser.getEmail());
+        
         if (theActualUser != null && theActualUser.getPassword().equals(theEncryptionService.convertSHA256(theNewUser.getPassword()))) {
             token = theJwtService.generateToken(theActualUser);
+            tok=generadorCodigoSecondAF();
+            theActualUser.setToken(tok);
+            this.theUserRepository.save(theActualUser);
+
+            notificationsService.sendCodeByEmail(theActualUser, tok);
         } else {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
-        return token;
+        return theActualUser;
     }
     @PutMapping("/second-Factor")
-    public String secondFactor(
+    public User secondFactor(
         @RequestBody User thUser, 
         final HttpServletResponse response
     ) throws IOException, java.io.IOException {
         User theActualUser = this.theUserRepository.getUserByEmail(thUser.getEmail());
     
         // Verifica si el usuario y la contraseña son válidos
-        if (theActualUser != null && 
-            theActualUser.getPassword().equals(theEncryptionService.convertSHA256(thUser.getPassword()))) {
-            
-            // Comprueba si el token del usuario coincide con el que envió
-            if (theActualUser.getToken() != null && 
-                theActualUser.getToken().equals(thUser.getToken())) {
+        if (theActualUser != null && theActualUser.getToken() != null && 
+        theActualUser.getToken().equals(thUser.getToken())) {
                 // Si coinciden, retorna éxito
-                return "Ha ingresado de forma satisfactoria";
-            } else {
-                // Si el token no coincide o es nulo, genera un nuevo código
-                String secondAuthentication = generadorCodigoSecondAF(); // Genera el código
+            return theActualUser;
+
+        } else {
+            String secondAuthentication = generadorCodigoSecondAF();
+            if (theActualUser!=null) {
                 theActualUser.setToken(secondAuthentication); // Actualiza el token
                 this.theUserRepository.save(theActualUser); // Guarda el cambio
-                notificationsService.sendCodeByEmail(theActualUser, secondAuthentication); // Envía el código
-                return " este es el token " + theActualUser.getToken() + " y el del usuario ingresado es "+ thUser.getToken() + " comprabacion de funcion " + thUser.getEmail(); // Mensaje informativo
+                notificationsService.sendCodeByEmail(theActualUser, secondAuthentication); // Envía el código 
             }
-        } else {
-            // Si la contraseña es incorrecta
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Contraseña incorrecta");
-            return null; // No se necesita retorno adicional
+                       
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "token incorrecto");
+            return theActualUser; // No se necesita retorno adicional
         }
     }
 
@@ -90,7 +92,7 @@ public class SecurityController {
     }
     public static String generadorCodigoSecondAF(){
         Random random = new Random();
-        int codigo = 100000 + random.nextInt(900000);
+        int codigo = 100001 + random.nextInt(900000);
         String token = Integer.toString(codigo);
         return token;
     }
